@@ -1,0 +1,55 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verificar archivos requeridos (index.html y script.js)
+        run: |
+          MISSING=0
+          if [ ! -f "index.html" ]; then
+            echo "❌ Error: No se encontró el archivo index.html"
+            MISSING=1
+          fi
+          if [ ! -f "script.js" ]; then
+            echo "❌ Error: No se encontró el archivo script.js"
+            MISSING=1
+          fi
+          if [ $MISSING -eq 1 ]; then
+            echo "❌ El despliegue fue abortado porque faltan archivos obligatorios."
+            exit 1
+          fi
+          echo "✅ Verificación exitosa: index.html y script.js están presentes."
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
